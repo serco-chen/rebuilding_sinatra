@@ -61,4 +61,23 @@ module Sinatra
     reset!
 
   end
+
+  # Sinatra delegation mixin. Mixing this module into an object causes all
+  # methods to be delegated to the Sinatra::Base class. Used primarily
+  # at the top-level.
+  # Delegator has been rewritten, and it's more like delegate method in Rails.
+  module Delegator #:nodoc:
+    def self.delegate(*methods, options)
+      target = options[:to]
+      methods.each do |method_name|
+        define_method(method_name) do |*args, &block|
+          return super(*args, &block) if respond_to? method_name
+          target.send(method_name, *args, &block)
+        end
+        private method_name
+      end
+    end
+
+    delegate :get, :patch, :put, :post, :delete, :head, :options, to: Base
+  end
 end
