@@ -10,7 +10,11 @@ class Sinatra::Base
   end
 
   get '/posts' do
-    ['200', {'Content-Type' => 'text/html'}, ['You are in the posts page']]
+    if id = params["id"]
+      ['200', {'Content-Type' => 'text/html'}, ["You are view post number #{id}"]]
+    else
+      ['200', {'Content-Type' => 'text/html'}, ['You are in the posts page']]
+    end
   end
 
   post '/posts' do

@@ -2,13 +2,18 @@ require 'rack'
 
 module Sinatra
   class Base
+
+    attr_reader :params
+
     def call(env)
       @request = Rack::Request.new(env)
+      @params = @request.params
 
       # test the path_info with each route controller
       self.class.routes[@request.request_method].each do |path, block|
         next unless path.match @request.path_info
-        return block.call
+        # eval block in instance context, so params can be accessed in block
+        return instance_eval(&block)
       end
 
       # return 404 when no routes match
