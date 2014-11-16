@@ -38,6 +38,11 @@ module Sinatra
         handler.run(self, {Port: 4567, Host: '0.0.0.0'})
       end
 
+      def inherited(subclass)
+        subclass.reset!
+        super
+      end
+
       def get(path, &block)     route 'GET',     path, &block end
       def head(path, &block)    route 'HEAD',    path, &block end
       def post(path, &block)    route 'POST',    path, &block end

@@ -3,7 +3,7 @@ $:.unshift "#{File.dirname(__FILE__)}"
 # app.rb
 require './lib/sinatra'
 
-class Sinatra::Base
+class MyApp < Sinatra::Base
 
   get '/' do
     ['200', {'Content-Type' => 'text/html'}, ['You are in the root page']]
@@ -23,4 +23,4 @@ class Sinatra::Base
 end
 
 
-Sinatra::Base.run!
+MyApp.run!
