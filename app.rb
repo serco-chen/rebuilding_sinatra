@@ -18,6 +18,3 @@ end
 post '/posts' do
   ['200', {'Content-Type' => 'text/html'}, ['You just post to the posts page']]
 end
-
-
-Sinatra::Base.run!
