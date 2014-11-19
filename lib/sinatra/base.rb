@@ -1,4 +1,5 @@
 require 'rack'
+require 'uri'
 
 module Sinatra
   class Base
@@ -9,9 +10,21 @@ module Sinatra
       @request = Rack::Request.new(env)
       @params = @request.params
 
+      dispatch!
+    end
+
+    def dispatch!
       # test the path_info with each route controller
-      self.class.routes[@request.request_method].each do |path, block|
-        next unless path.match @request.path_info
+      values = []
+      self.class.routes[@request.request_method].each do |pattern, keys, block|
+        next unless match = pattern.match(@request.path_info)
+        values += match.captures.map! { |v| URI.unescape(v) if v }
+
+        if values.any?
+          @params = params.merge('splat' => [], 'captures' => values)
+          keys.zip(values) { |k,v| Array === @params[k] ? @params[k] << v : @params[k] = v if v }
+        end
+
         # eval block in instance context, so params can be accessed in block
         return instance_eval(&block)
       end
@@ -54,7 +67,43 @@ module Sinatra
       # store defined route controllers in @routes, so it can be
       # retrieved by incoming requests.
       def route(verb, path, &block)
-        (@routes[verb] ||= []) << [path, block]
+        pattern, keys = compile path
+        (@routes[verb] ||= []) << [pattern, keys, block]
+      end
+
+      def compile(path)
+        # String like object
+        if path.respond_to? :to_str
+          keys = []
+
+          # give back '/' when finished compiling, if path end with '/'
+          postfix = '/' if path =~ /\/\z/
+
+          segments = path.split('/').map do |segment|
+            pattern = segment.to_str
+
+            # Key handling.
+            pattern.gsub(/((:\w+)|\*)/) do |match|
+              if match == "*"
+                keys << 'splat'
+                "(.*?)"
+              else
+                keys << $2[1..-1]
+                "([^/?#]+)"
+              end
+            end
+          end
+          [/\A#{segments.join('/')}#{postfix}\z/, keys]
+        # RegExp
+        elsif path.respond_to?(:names) && path.respond_to?(:match)
+          [path, path.names]
+        # Anything respond_to :match
+        elsif path.respond_to?(:match)
+          [path, []]
+        # Wrong Type
+        else
+          raise TypeError, path
+        end
       end
     end
 
